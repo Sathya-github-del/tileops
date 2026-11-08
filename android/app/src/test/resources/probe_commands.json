@@ -1,0 +1,12 @@
+{
+ "users": "cat /etc/passwd",
+ "ssh_keys": "if sudo -n /usr/local/sbin/tileops-read authorized-keys 2>/dev/null; then :; else echo '#TILEOPS-DEGRADED'; for f in \"$HOME/.ssh/authorized_keys\" \"$HOME/.ssh/authorized_keys2\"; do [ -f \"$f\" ] && { echo \"==> $(id -un) $f <==\"; cat \"$f\"; echo; }; done; for f in /root/.ssh/authorized_keys; do [ -r \"$f\" ] && { echo \"==> root $f <==\"; cat \"$f\"; echo; }; done; fi",
+ "cron": "if sudo -n /usr/local/sbin/tileops-read crontabs 2>/dev/null; then :; else echo '#TILEOPS-DEGRADED'; c=$(crontab -l 2>/dev/null) && { echo \"==> /var/spool/cron/crontabs/$(id -un) <==\"; printf \"%s\\n\" \"$c\"; }; fi; for f in /etc/crontab /etc/anacrontab /etc/cron.d/* /etc/crontabs/* /etc/cron.hourly/* /etc/cron.daily/* /etc/cron.weekly/* /etc/cron.monthly/*; do [ -f \"$f\" ] && [ -r \"$f\" ] && { echo \"==> $f <==\"; head -c 65536 \"$f\"; echo; }; done; true",
+ "ports": "sudo -n ss -tlnpH 2>/dev/null || { echo '#TILEOPS-DEGRADED'; ss -tlnH 2>/dev/null || netstat -tln 2>/dev/null || cat /proc/net/tcp /proc/net/tcp6 2>/dev/null; }",
+ "processes": "if ps -eo pid,user,pcpu,args --sort=-pcpu >/dev/null 2>&1; then ps -eo pid,user,pcpu,args --sort=-pcpu | head -n 41; else top -b -n 1 | head -n 60; fi",
+ "webroot": "for r in /var/www '/srv/my site' '/srv/it'\"'\"'s'; do [ -d \"$r\" ] || continue; find \"$r\" -xdev -type f -exec stat -c '%Y|%s|%n' {} + 2>/dev/null; done | head -n 5000",
+ "units": "for d in /etc/systemd/system /run/systemd/system /usr/local/lib/systemd/system /usr/lib/systemd/system /lib/systemd/system; do [ -d \"$d\" ] || continue; find \"$d\" -maxdepth 1 -type f \\( -name '*.service' -o -name '*.timer' -o -name '*.socket' -o -name '*.path' \\) -exec sha256sum {} + 2>/dev/null; find \"$d\" -maxdepth 1 -type l \\( -name '*.service' -o -name '*.timer' -o -name '*.socket' -o -name '*.path' \\) 2>/dev/null | while read -r f; do echo \"link:$(readlink \"$f\")  $f\"; done; done; true",
+ "access_check": "echo \"USER=$(id -un)\"; sudo -n /usr/local/sbin/tileops-read crontabs >/dev/null 2>&1 && echo SUDO=ok || echo SUDO=no; sudo -n ss -tlnpH >/dev/null 2>&1 && echo SS=ok || echo SS=no; command -v systemctl >/dev/null 2>&1 && echo SYSTEMCTL=yes || echo SYSTEMCTL=no",
+ "status:nginx": "sudo -n systemctl status --no-pager nginx",
+ "restart:php8.3-fpm": "sudo -n systemctl restart php8.3-fpm"
+}

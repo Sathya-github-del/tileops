@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0f1115">
+<title>TileOps</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--card2:#1f232c;--fg:#e6e8ee;--mut:#9aa3b2;--line:#2a2f3a;
+--acc:#6ea8fe;--crit:#ff5c6c;--high:#ff9f43;--med:#f7d154;--low:#7bd88f;--info:#8ab4f8;--ok:#3ecf8e}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);
+font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
+padding:12px 16px;display:flex;align-items:center;gap:10px}
+header h1{font-size:17px;margin:0;flex:1}.dot{width:10px;height:10px;border-radius:50%;background:var(--mut)}
+.dot.ok{background:var(--ok)}.dot.alert{background:var(--crit)}
+nav{display:flex;gap:4px;padding:8px 16px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav a{color:var(--mut);text-decoration:none;padding:6px 12px;border-radius:999px;white-space:nowrap}
+nav a.on{background:var(--card2);color:var(--fg)}
+main{max-width:640px;margin:0 auto;padding:12px 16px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0}
+a.card{display:block;color:inherit;text-decoration:none}
+.row{display:flex;align-items:center;gap:8px}.grow{flex:1;min-width:0}
+.mut{color:var(--mut);font-size:13px}.title{font-weight:600;overflow-wrap:anywhere}
+.sev{font-size:12px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:6px;color:#111}
+.sev.critical{background:var(--crit)}.sev.high{background:var(--high)}.sev.medium{background:var(--med)}
+.sev.low{background:var(--low)}.sev.info{background:var(--info)}
+.pill{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--card2);color:var(--mut)}
+button,input,select{font:inherit}
+button{background:var(--card2);color:var(--fg);border:1px solid var(--line);border-radius:10px;
+padding:10px 14px;min-height:44px;cursor:pointer}button.pri{background:var(--acc);color:#0b1020;border:0;font-weight:600}
+button.danger{background:var(--crit);color:#160307;border:0;font-weight:700}button:disabled{opacity:.5}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+input{width:100%;background:var(--card2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:12px}
+label{display:block;margin:10px 0 4px;color:var(--mut);font-size:13px}
+pre{background:#0a0c10;border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto;
+white-space:pre-wrap;word-break:break-all;font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;margin:6px 0}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:6px 0}dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
+.tl{border-left:2px solid var(--line);margin-left:6px;padding-left:14px}
+.tl .ev{position:relative;margin:10px 0}.tl .ev:before{content:"";position:absolute;left:-20px;top:6px;width:10px;
+height:10px;border-radius:50%;background:var(--acc)}
+.err{color:var(--crit)}.okc{color:var(--ok)}h2{font-size:16px;margin:16px 0 4px}h3{font-size:14px;margin:12px 0 4px;color:var(--mut)}
+#toast{position:fixed;left:16px;right:16px;bottom:16px;background:var(--card2);border:1px solid var(--line);
+border-radius:10px;padding:12px;display:none;z-index:10}
+</style>
+</head>
+<body>
+<header><span id="dot" class="dot"></span><h1>TileOps</h1><button id="scanBtn" hidden>Scan now</button></header>
+<nav id="nav" hidden>
+  <a href="#/alerts" data-r="alerts">Alerts</a><a href="#/servers" data-r="servers">Servers</a>
+  <a href="#/incidents" data-r="incidents">Timeline</a><a href="#/settings" data-r="settings">Settings</a>
+</nav>
+<main id="app"></main>
+<div id="toast"></div>
+<script>
+"use strict";
+// All server data is rendered with textContent only: evidence is attacker-controlled.
+const $app = document.getElementById("app");
+const TK = "tileops_token";
+function token(){ try { return localStorage.getItem(TK) || ""; } catch(e){ return ""; } }
+function setToken(t){ try { t ? localStorage.setItem(TK, t) : localStorage.removeItem(TK); } catch(e){} }
+
+function h(tag, attrs, ...kids){
+  const el = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs||{})){
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "href") el.setAttribute("href", String(v).startsWith("#") ? v : "#");
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()){ if (k == null || k === false) continue;
+    el.append(k instanceof Node ? k : document.createTextNode(String(k))); }
+  return el;
+}
+function render(...kids){ $app.replaceChildren(...kids.flat(3).filter(k => k != null && k !== false)); }
+function toast(msg, bad){ const t=document.getElementById("toast"); t.textContent=msg;
+  t.style.color = bad ? "var(--crit)" : "var(--fg)"; t.style.display="block";
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.style.display="none", 3500); }
+function ago(ts){ if(!ts) return "never"; const s=Math.round(Date.now()/1000-ts);
+  if(s<60) return s+"s ago"; if(s<3600) return Math.round(s/60)+"m ago";
+  if(s<86400) return Math.round(s/3600)+"h ago"; return new Date(ts*1000).toLocaleString(); }
+const TW = {new_user:"User accounts", ssh_key:"SSH login keys", cron:"Scheduled tasks (cron)",
+  listening_port:"Open network ports", cpu_process:"Unknown CPU-heavy program", webroot_file:"Website files",
+  systemd_unit:"System services", host_key:"Server identity (host key)"};
+function twName(id){ return TW[id] || String(id).replace(/_/g," "); }
+function when(ts){ return ts ? new Date(ts*1000).toLocaleString() : "-"; }
+
+async function api(path, opts={}){
+  const r = await fetch(path, {method: opts.method||"GET",
+    headers: Object.assign({"Authorization":"Bearer "+token()}, opts.body?{"Content-Type":"application/json"}:{}),
+    body: opts.body ? JSON.stringify(opts.body) : undefined});
+  if (r.status === 401){ setToken(""); route(); throw new Error("Not authorised: log in again"); }
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(data.detail || ("HTTP "+r.status));
+  return data;
+}
+
+// ------------------------------------------------------------------ views
+function login(){
+  const inp = h("input",{type:"password",autocomplete:"off",placeholder:"pairing code"});
+  render(h("div",{class:"card"},
+    h("h2",{},"Log in"), h("p",{class:"mut"},"Enter the pairing code your TileOps companion printed when it started (run \"python -m companion pair\" on it to show it again)."),
+    h("label",{},"Pairing code"), inp,
+    h("div",{class:"btns"}, h("button",{class:"pri",onclick:async()=>{
+      setToken(inp.value.trim());
+      try { await api("/api/status"); location.hash="#/alerts"; route(); } catch(e){ toast(e.message,true); }
+    }},"Log in"))));
+}
+
+async function alertsView(){
+  const filter = (sessionStorage.getItem("af")||"active");
+  const list = await api("/api/alerts?status="+encodeURIComponent(filter));
+  const sel = h("select",{class:"pill",onchange:e=>{sessionStorage.setItem("af",e.target.value); route();}},
+    ...["active","open","acked","snoozed","accepted","all"].map(v=>h("option",{value:v,selected:v===filter},v)));
+  render(h("div",{class:"row"},h("h2",{class:"grow"},"Alerts ("+list.length+")"),sel),
+    list.length ? list.map(a => h("a",{class:"card",href:"#/alert/"+a.id},
+      h("div",{class:"row"}, h("span",{class:"sev "+a.severity},a.severity), h("span",{class:"pill"},a.status),
+        h("span",{class:"grow"}), h("span",{class:"mut"},ago(a.last_seen))),
+      h("div",{class:"title",style:"margin-top:6px"},a.title),
+      h("div",{class:"mut"},a.server+" · "+twName(a.tripwire)+(a.count>1?" · seen "+a.count+"×":""))))
+    : h("div",{class:"card mut"},"No alerts. All quiet."));
+}
+
+async function alertView(id){
+  const [a, aiS] = await Promise.all([api("/api/alerts/"+id), api("/api/ai")]);
+  const ev = a.evidence || {};
+  const act = (path, body, msg) => async () => { try { await api("/api/alerts/"+id+path,{method:"POST",body}); toast(msg); route(); } catch(e){ toast(e.message,true);} };
+  const aiBox = h("div",{});
+  function showReport(r){
+    aiBox.replaceChildren(h("div",{class:"card"}, h("h3",{},"AI investigation (advisory only, cannot take actions)"),
+      h("p",{},r.summary||""),
+      ...[["Known","known"],["Suspected","suspected"],["Unverified","unverified"],["Next read-only checks","next_read_only_checks"]]
+        .map(([t,k])=> (r[k]&&r[k].length) ? [h("h3",{},t), h("ul",{},r[k].map(x=>h("li",{},x)))] : null),
+      h("div",{class:"mut"},(r._model||"")+" · "+when(r.created_at))));
+  }
+  if (a.ai_report) showReport(a.ai_report);
+  const aiBtn = h("button",{disabled: !aiS.enabled, onclick: async (e)=>{
+    e.target.disabled = true; e.target.textContent = "Investigating…";
+    try { showReport(await api("/api/alerts/"+id+"/investigate",{method:"POST"})); }
+    catch(err){ toast(err.message,true); } e.target.disabled=false; e.target.textContent="Ask AI"; }},
+    aiS.enabled ? "Ask AI" : "AI not configured");
+
+  const rbs = (a.runbook_options||[]).map(o => h("button",{onclick: async()=>{
+    try { const run = await api("/api/runbooks/restart-service/run",{method:"POST",body:{server:o.server,service:o.service,alert_id:a.id}});
+      location.hash = "#/run/"+run.id; } catch(e){ toast(e.message,true); } }}, "Restart "+o.service+"…"));
+
+  render(
+    h("div",{class:"card"},
+      h("div",{class:"row"},h("span",{class:"sev "+a.severity},a.severity),h("span",{class:"pill"},a.status),
+        h("span",{class:"grow"}),h("span",{class:"mut"},"#"+a.id)),
+      h("div",{class:"title",style:"margin-top:8px;font-size:17px"},a.title),
+      h("dl",{}, h("dt",{},"Server"),h("dd",{},a.server), h("dt",{},"What changed"),h("dd",{},twName(a.tripwire)),
+        h("dt",{},"First seen"),h("dd",{},when(a.first_seen)), h("dt",{},"Last seen"),h("dd",{},when(a.last_seen)+" ("+a.count+"×)"),
+        a.snooze_until ? [h("dt",{},"Snoozed until"),h("dd",{},when(a.snooze_until))] : null),
+      h("div",{class:"btns"},
+        h("button",{onclick:act("/ack",null,"Acknowledged")},"Ack"),
+        h("button",{onclick:act("/snooze",{minutes:60},"Snoozed 1h")},"Snooze 1h"),
+        h("button",{onclick:act("/snooze",{minutes:1440},"Snoozed 24h")},"Snooze 24h"),
+        h("button",{class:"pri",onclick:act("/accept",null,"Marked as expected")},"Mark as expected"))),
+    h("div",{class:"card"}, h("h3",{},"Evidence"),
+      h("dl",{}, h("dt",{},"Change"),h("dd",{},ev.change||"-"), h("dt",{},"Key"),h("dd",{},ev.key||"-"),
+        h("dt",{},"Collected"),h("dd",{},when(ev.collected_at)), h("dt",{},"Command"),h("dd",{},h("code",{},ev.command||"-")),
+        ev.degraded ? [h("dt",{},"Note"),h("dd",{class:"err"},"privileged read unavailable (degraded)")] : null),
+      ev.detail && Object.keys(ev.detail).length ? [h("h3",{},"Detail"), h("pre",{},JSON.stringify(ev.detail,null,1))] : null,
+      ev.old != null ? [h("h3",{},"Before"), h("pre",{},JSON.stringify(ev.old,null,1))] : null,
+      h("h3",{},"Now"), h("pre",{},JSON.stringify(ev.new,null,1)),
+      h("h3",{},"Raw output excerpt"), h("pre",{},ev.raw_excerpt||"(none)")),
+    h("div",{class:"card"}, h("h3",{},"Investigate & respond"), h("div",{class:"btns"}, aiBtn, ...rbs),
+      a.incident_id ? h("div",{style:"margin-top:8px"},h("a",{href:"#/incident/"+a.incident_id,style:"color:var(--acc)"},"Open incident timeline →")) : null),
+    aiBox);
+}
+
+async function serversView(){
+  const list = await api("/api/servers");
+  render(h("h2",{},"Servers"), list.map(s => h("div",{class:"card"},
+    h("div",{class:"row"}, h("span",{class:"dot "+(s.status==="ok"?"ok":s.status==="pending"?"":"alert")}),
+      h("span",{class:"title grow"},s.name), h("span",{class:"pill"},s.status)),
+    h("dl",{}, h("dt",{},"Target"),h("dd",{},s.user+"@"+s.host+":"+s.port),
+      h("dt",{},"Last scan"),h("dd",{},ago(s.last_scan)), h("dt",{},"Open alerts"),h("dd",{},s.open_alerts),
+      h("dt",{},"Host key"),h("dd",{},s.host_key||"not pinned yet"),
+      s.degraded_probes.length ? [h("dt",{},"Degraded"),h("dd",{},s.degraded_probes.join(", "))] : null,
+      s.last_error ? [h("dt",{},"Error"),h("dd",{class:"err"},s.last_error)] : null),
+    h("div",{class:"btns"}, h("button",{onclick:async(e)=>{ e.target.disabled=true;
+      try { const r = await api("/api/servers/"+encodeURIComponent(s.name)+"/scan",{method:"POST"});
+        toast(r.ok ? ("Scan done: "+r.new_alerts.length+" new alert(s)") : ("Scan failed: "+r.error), !r.ok); }
+      catch(err){ toast(err.message,true);} route(); }},"Scan now"),
+      ...s.services.map(svc => h("button",{onclick:async()=>{ try {
+        const run = await api("/api/runbooks/restart-service/run",{method:"POST",body:{server:s.name,service:svc}});
+        location.hash="#/run/"+run.id; } catch(e){ toast(e.message,true);} }},"Restart "+svc+"…"))))));
+}
+
+async function incidentsView(){
+  const list = await api("/api/incidents");
+  render(h("h2",{},"Incidents"), list.length ? list.map(i => h("a",{class:"card",href:"#/incident/"+i.id},
+    h("div",{class:"row"},h("span",{class:"title grow"},i.title),h("span",{class:"pill"},i.status)),
+    h("div",{class:"mut"},i.server+" · updated "+ago(i.updated_at)))) : h("div",{class:"card mut"},"No incidents yet."));
+}
+
+async function incidentView(id){
+  const i = await api("/api/incidents/"+id);
+  render(h("div",{class:"card"},
+    h("div",{class:"row"},h("span",{class:"title grow"},i.title),h("span",{class:"pill"},i.status)),
+    h("div",{class:"mut"},i.server+" · opened "+when(i.created_at)),
+    i.alert_id ? h("a",{href:"#/alert/"+i.alert_id,style:"color:var(--acc)"},"View alert #"+i.alert_id) : null),
+    h("h2",{},"Timeline"),
+    h("div",{class:"tl"}, i.events.map(e => h("div",{class:"ev"},
+      h("div",{},e.message), h("div",{class:"mut"},when(e.ts)+" · "+e.kind),
+      e.data && e.data.output ? h("pre",{},e.data.output) : null,
+      e.data && e.data.run_id && e.kind==="approval_requested" ? h("a",{href:"#/run/"+e.data.run_id,style:"color:var(--acc)"},"Open approval →") : null))));
+}
+
+async function runView(id){
+  const r = await api("/api/runs/"+id);
+  const ap = r.approval || {};
+  const pin = h("input",{type:"password",inputmode:"numeric",autocomplete:"off",placeholder:"approval PIN"});
+  const waiting = r.status === "awaiting_approval";
+  render(
+    h("div",{class:"card"}, h("div",{class:"row"},h("span",{class:"title grow"},"Runbook: "+r.runbook+" #"+r.id),
+      h("span",{class:"pill "+(r.status==="verified"?"okc":r.status==="failed"?"err":"")},r.status)),
+      h("dl",{}, h("dt",{},"Target"),h("dd",{},ap.target), h("dt",{},"Action"),h("dd",{},h("code",{},ap.action)),
+        h("dt",{},"Impact"),h("dd",{},ap.impact), h("dt",{},"Verify"),h("dd",{},"GET "+ap.health_url+" → 200"))),
+    waiting ? h("div",{class:"card"}, h("h3",{},"Approve this action"),
+      h("p",{class:"mut"},"This restarts a live service. Enter the approval PIN to continue."),
+      h("label",{},"PIN"), pin,
+      h("div",{class:"btns"},
+        h("button",{class:"danger",onclick:async(e)=>{ e.target.disabled=true; e.target.textContent="Running…";
+          try { const res = await api("/api/runs/"+id+"/approve",{method:"POST",body:{pin:pin.value}});
+            toast("Run "+res.status, res.status!=="verified"); } catch(err){ toast(err.message,true); } route(); }},"Approve & restart"),
+        h("button",{onclick:async()=>{ try { await api("/api/runs/"+id+"/reject",{method:"POST"}); } catch(e){ toast(e.message,true);} route(); }},"Reject"))) : null,
+    h("h2",{},"Steps"),
+    r.steps.map(s => h("div",{class:"card"}, h("div",{class:"row"},h("span",{class:"title grow"},s.name+(s.requires_approval?" (needs approval)":"")),
+      h("span",{class:"pill "+(s.status==="ok"?"okc":s.status==="failed"?"err":"")},s.status)),
+      s.output ? h("pre",{},s.output) : null)),
+    h("a",{href:"#/incident/"+r.incident_id,style:"color:var(--acc)"},"Incident timeline →"));
+}
+
+function settingsView(){
+  render(h("div",{class:"card"},h("h2",{},"Settings"),
+    h("p",{class:"mut"},"Token is stored in this browser only."),
+    h("h3",{},"About"),
+    h("p",{},"TileOps: agentless server security + ops monitor."),
+    h("p",{class:"mut"},"Created by Sathya Prakash J · creator & lead developer · © 2026"),
+    h("div",{class:"btns"},h("button",{onclick:()=>{ setToken(""); route(); }},"Log out"))));
+}
+
+// ------------------------------------------------------------------ router
+async function refreshDot(){
+  try { const s = await api("/api/status"); const d=document.getElementById("dot");
+    d.className = "dot "+(s.ok?"ok":"alert"); d.title = s.open_alerts+" open alert(s)"; } catch(e){}
+}
+async function route(){
+  const authed = !!token();
+  document.getElementById("nav").hidden = !authed;
+  document.getElementById("scanBtn").hidden = !authed;
+  if (!authed) return login();
+  const [_, view, id] = (location.hash || "#/alerts").split("/");
+  for (const a of document.querySelectorAll("nav a")) a.classList.toggle("on", a.dataset.r === view ||
+    (view==="alert"&&a.dataset.r==="alerts") || ((view==="incident"||view==="run")&&a.dataset.r==="incidents"));
+  try {
+    if (view === "alert" && id) await alertView(parseInt(id,10));
+    else if (view === "servers") await serversView();
+    else if (view === "incidents") await incidentsView();
+    else if (view === "incident" && id) await incidentView(parseInt(id,10));
+    else if (view === "run" && id) await runView(parseInt(id,10));
+    else if (view === "settings") settingsView();
+    else await alertsView();
+  } catch(e){ render(h("div",{class:"card err"},e.message)); }
+  refreshDot();
+}
+document.getElementById("scanBtn").addEventListener("click", async (e)=>{
+  e.target.disabled = true; e.target.textContent = "Scanning…";
+  try { const res = await api("/api/scan",{method:"POST"});
+    const n = res.reduce((a,r)=>a+r.new_alerts.length,0); toast("Scan done: "+n+" new alert(s)"); }
+  catch(err){ toast(err.message,true); }
+  e.target.disabled=false; e.target.textContent="Scan now"; route();
+});
+window.addEventListener("hashchange", route);
+setInterval(()=>{ if(token() && (location.hash||"#/alerts").startsWith("#/alerts")) route(); }, 60000);
+route();
+</script>
+</body>
+</html>

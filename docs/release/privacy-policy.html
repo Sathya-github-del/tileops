@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>TileOps privacy policy</title>
+<style>body{font:16px/1.55 system-ui,sans-serif;max-width:720px;margin:2rem auto;padding:0 16px;color:#1d2330}h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:1.6rem}</style>
+</head><body>
+<h1>TileOps privacy policy</h1>
+<p><i>Last updated: 8 November 2026 · Developer: Sathya Prakash J</i></p>
+<p>TileOps is a tool for watching your own servers. It has <b>no user accounts, no ads, no analytics and no tracking</b>, and the developer receives <b>no data</b> from the app.</p>
+<h2>What the app stores, and where</h2>
+<p>Everything stays on your device, in the app&#x27;s private storage, encrypted with a key held in the Android Keystore:</p>
+<ul><li>the servers you add (name, address, port, login user, folders and services to watch, optional health-check URLs);</li>
+<li>an SSH key pair TileOps generates for each server (the private key never leaves the device);</li>
+<li>the trusted host-key fingerprint of each server;</li>
+<li>the results of checks: the baseline, alerts with their evidence, the incident timeline, restart runs;</li>
+<li>your restart approval PIN, stored only as a salted hash;</li>
+<li>in companion mode, the companion&#x27;s address and pairing code.</li></ul>
+<p>Uninstalling the app, or clearing its data, deletes all of it. Device backups exclude TileOps data.</p>
+<h2>What the app connects to</h2>
+<p>Only addresses you choose:</p>
+<ul><li><b>your servers</b>, over SSH, to run read-only checks (and service restarts you approve);</li>
+<li><b>health-check URLs</b> you set, to confirm a restart worked;</li>
+<li><b>your own TileOps companion</b>, if you use companion mode.</li></ul>
+<p>TileOps does not send your server data anywhere else.</p>
+<h2>Permissions</h2>
+<ul><li><b>Camera:</b> only to scan a companion&#x27;s pairing QR code. Images are processed on the device by Google ML Kit and are not stored or sent.</li>
+<li><b>Notifications:</b> to show alerts.</li>
+<li><b>Biometric / screen lock:</b> to confirm restarts and opening your VPN app. TileOps never sees your fingerprint or screen-lock PIN.</li>
+<li><b>Network state:</b> to tell whether a VPN is connected before checking VPN-only servers.</li></ul>
+<h2>Third-party components</h2>
+<p>Google ML Kit (barcode scanning) runs on the device. Google may collect limited diagnostic and usage information about ML Kit itself, as described at https://developers.google.com/ml-kit/android-data-disclosure. If you use the optional companion with push notifications, the companion (which you run yourself) sends short alert titles to the ntfy.sh service under a random topic you control.</p>
+<h2>Children</h2>
+<p>TileOps is a tool for server administrators and is not directed at children.</p>
+<h2>Contact</h2>
+<p>Questions: <i>&lt;your support email&gt;</i>.</p>
+</body></html>

@@ -1,0 +1,32 @@
+# secrets & local state — never commit
+secrets/
+config.yaml
+config.local.yaml
+*.db
+*.db-journal
+*.sqlite
+pair.png
+logs/
+known_hosts
+env.local.sh
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.keystore
+android_smoke.png
+*.apk
+state/
+android/.android-user/
+MORNING.md
+android_smoke_*.png
+android_v2_*.png
+onboarding_*.png
+dist/
+.public-wt/

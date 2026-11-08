@@ -1,0 +1,27 @@
+# TileOps companion config. Copy to config.yaml (gitignored) and chmod 600.
+state_dir: ./state            # sqlite db, api_token, ntfy_topic, pinned host keys, pair.png
+bind_host: 127.0.0.1          # set to this machine's LAN IP (e.g. 192.168.1.20) so phones can reach it
+bind_port: 8800
+public_url: http://127.0.0.1:8800   # what the phone/app uses; goes into the pairing QR + ntfy link
+tls: true                     # HTTPS with a self-signed cert pinned by the app (http:// above becomes https://)
+scan_interval: 300            # seconds
+cpu_threshold: 50             # % CPU for the unknown-process tripwire
+cpu_consecutive: 2            # scans in a row above threshold before alerting
+approval_pin: "change-me"     # or approval_pin_sha256: <hex>; needed to approve runbooks
+key_path: ./secrets/target_ed25519   # default SSH key for servers below
+ntfy:
+  enabled: true
+  server: https://ntfy.sh
+  topic: ""                   # empty = random 32-char topic generated on first start
+ai:
+  model: claude-sonnet-5-5    # used only if ANTHROPIC_API_KEY is set in the environment
+servers:
+  - name: tileops-target
+    host: 192.168.1.12
+    port: 2222
+    user: tileops
+    web_roots: [/var/www]
+    services: [nginx]         # the only services runbooks may restart (must match target sudoers)
+    health_urls:
+      nginx: http://192.168.1.12:8088/
+    process_allowlist: []     # process names never flagged by the CPU tripwire
