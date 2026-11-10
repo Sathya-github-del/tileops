@@ -5,7 +5,7 @@
   - Note: data sent to servers the user configures themselves is not "collection" by the developer.
 - **Is all user data encrypted in transit?** SSH to servers: yes. Companion mode uses plain HTTP on the user's own network today. Answer **No** until companion HTTPS ships, or answer per Play's current definitions if companion traffic is excluded as user-controlled.
 - **Can users request data deletion?** Data is on-device only: uninstall/clear data deletes it.
-- **Third-party SDKs:** Google ML Kit Barcode Scanning (on-device). Check Google's current disclosure for what ML Kit itself collects (https://developers.google.com/ml-kit/android-data-disclosure) and declare it if required (typically: app info and performance diagnostics, not shared, not used for tracking).
+- **Third-party SDKs:** none that collect data (QR decoding uses the open-source ZXing library on the device; no Google Play services, analytics or ads).
 
 ## App content
 - **Ads:** No · **In-app purchases:** No · **Target audience:** 18+ (tool for server administrators) · **News app:** No

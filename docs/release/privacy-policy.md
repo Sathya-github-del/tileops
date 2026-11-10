@@ -24,13 +24,13 @@ Only addresses you choose:
 TileOps does not send your server data anywhere else.
 
 ## Permissions
-- **Camera:** only to scan a companion's pairing QR code. Images are processed on the device by Google ML Kit and are not stored or sent.
+- **Camera:** only to scan a companion's pairing QR code. Images are decoded on the device by the open-source ZXing library and are never stored or sent.
 - **Notifications:** to show alerts.
 - **Biometric / screen lock:** to confirm restarts and opening your VPN app. TileOps never sees your fingerprint or screen-lock PIN.
 - **Network state:** to tell whether a VPN is connected before checking VPN-only servers.
 
 ## Third-party components
-Google ML Kit (barcode scanning) runs on the device. Google may collect limited diagnostic and usage information about ML Kit itself, as described at https://developers.google.com/ml-kit/android-data-disclosure. If you use the optional companion with push notifications, the companion (which you run yourself) sends short alert titles to the ntfy.sh service under a random topic you control.
+TileOps contains no analytics, advertising or tracking SDKs, and no Google Play services code. If you use the optional companion with push notifications, the companion (which you run yourself) sends short alert titles to the ntfy.sh service under a random topic you control.
 
 ## Children
 TileOps is a tool for server administrators and is not directed at children.

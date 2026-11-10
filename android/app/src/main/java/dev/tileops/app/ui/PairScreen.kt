@@ -18,7 +18,6 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -57,10 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.common.InputImage
+import dev.tileops.app.core.QrDecoder
 import dev.tileops.app.data.ApiClient
 import dev.tileops.app.data.Pairing
 import dev.tileops.app.data.PairingUri
@@ -371,53 +367,53 @@ private fun OptionTitle(n: Int, title: String) {
     }
 }
 
-/** CameraX preview + ML Kit QR detection. [onCode] returns true to stop scanning. */
-@androidx.annotation.OptIn(ExperimentalGetImage::class)
+/** CameraX preview + ZXing QR detection (open source, no Google Play services). [onCode] returns true to stop scanning. */
 @Composable
 fun QrScanner(modifier: Modifier, onCode: (String) -> Boolean) {
     val ctx = LocalContext.current
     val owner = LocalLifecycleOwner.current
     val done = remember { AtomicBoolean(false) }
     val executor = remember { Executors.newSingleThreadExecutor() }
-    val scanner = remember {
-        BarcodeScanning.getClient(BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build())
-    }
     var provider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     DisposableEffect(Unit) {
         onDispose {
             provider?.unbindAll()
-            scanner.close()
             executor.shutdown()
         }
     }
     AndroidView(modifier = modifier, factory = { c ->
         val view = PreviewView(c)
+        val main = ContextCompat.getMainExecutor(c)
         val future = ProcessCameraProvider.getInstance(c)
         future.addListener({
             val p = future.get()
             provider = p
             val preview = Preview.Builder().build().also { it.setSurfaceProvider(view.surfaceProvider) }
-            val analysis = ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build()
+            val analysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
+                .build()
+            var buf = ByteArray(0)
             analysis.setAnalyzer(executor) { proxy ->
-                val media = proxy.image
-                if (media == null || done.get()) {
-                    proxy.close()
-                    return@setAnalyzer
-                }
-                scanner.process(InputImage.fromMediaImage(media, proxy.imageInfo.rotationDegrees))
-                    .addOnSuccessListener { codes ->
-                        val raw = codes.firstNotNullOfOrNull { it.rawValue }
-                        if (raw != null && done.compareAndSet(false, true)) {
-                            if (!onCode(raw)) done.set(false)
-                        }
+                proxy.use {
+                    if (done.get()) return@use
+                    val plane = proxy.planes[0] // Y (luminance), pixelStride is always 1
+                    val stride = plane.rowStride
+                    val need = stride * proxy.height
+                    if (buf.size != need) buf = ByteArray(need)
+                    val b = plane.buffer.duplicate().apply { rewind() }
+                    b.get(buf, 0, minOf(b.remaining(), need))
+                    val raw = QrDecoder.decodeLuminance(buf, proxy.width, proxy.height, stride) ?: return@use
+                    if (done.compareAndSet(false, true)) {
+                        main.execute { if (!onCode(raw)) done.set(false) }
                     }
-                    .addOnCompleteListener { proxy.close() }
+                }
             }
             runCatching {
                 p.unbindAll()
                 p.bindToLifecycle(owner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
             }
-        }, ContextCompat.getMainExecutor(c))
+        }, main)
         view
     })
 }

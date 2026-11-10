@@ -19,8 +19,3 @@
 
 # Stack traces in crash reports stay readable (mapping file is kept with the build).
 -keepattributes SourceFile,LineNumberTable
-
-# ML Kit / Firebase components are created reflectively (ComponentDiscovery) from manifest metadata:
-# keep the registrars' no-arg constructors or barcode scanning fails at runtime in release builds.
--keep class * implements com.google.firebase.components.ComponentRegistrar { <init>(); }
--keep class com.google.mlkit.**.*Registrar { <init>(); }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+- QR pairing now uses the open-source ZXing library instead of Google ML Kit: the app contains no Google Play services or other proprietary code, so it can be built and published by F-Droid.
+- Smaller download (no ML Kit model).
+- F-Droid store listing (fastlane metadata) in the repository.
+
 ## 0.3.0 (first public release)
 - Two modes: **Just this phone** (the app checks your servers itself) and **Always-on companion** (24/7 checks, push alerts).
 - Seven tripwires: users, SSH keys, cron, listening ports, unknown CPU-heavy processes, web-root files, systemd units; baseline, deduplication, evidence.

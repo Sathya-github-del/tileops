@@ -1,0 +1,29 @@
+<p>TileOps watches your Linux servers and tells you the moment something changes: a new user account, a new SSH key, a new scheduled task, a new open port, an unknown program eating the CPU, a new file in your website folder, or a new system service. Those are the classic signs of a break-in, or of a change nobody told you about.</p>
+
+<p><b>No agent, no account, no cloud.</b> TileOps logs in to your server over SSH with its own limited user and runs a fixed set of read-only checks. Nothing else is installed on the server. Your data stays on your phone (or on your own always-on companion).</p>
+
+<p><b>How it works</b></p>
+<ul>
+<li>Add a server in the app. TileOps gives you a one-time setup command that you can read in full; run it on the server from any SSH app. TileOps never asks for your server password.</li>
+<li>Confirm the server's identity (its host-key fingerprint), test, and run the first scan. That records what's normal.</li>
+<li>From then on, any change raises an alert with the evidence: what changed, when, and the exact command output.</li>
+</ul>
+
+<p><b>Act safely</b></p>
+<ul>
+<li>Mark a change as expected, acknowledge it, or snooze it.</li>
+<li>Restart a service (only ones you allow), and only after your PIN and your fingerprint or screen lock. A restart only counts as done when your health-check URL answers again.</li>
+<li>Every step goes into an incident timeline.</li>
+</ul>
+
+<p><b>Two ways to run it</b></p>
+<ul>
+<li>Just this phone: nothing else to install; checks when you open the app and in the background when Android allows.</li>
+<li>Always-on companion: a small open-source program on a Raspberry Pi, spare phone or server checks every 5 minutes, 24/7, and pushes alerts even when your phone is off.</li>
+</ul>
+
+<p><b>Servers behind a VPN</b>: mark a server "only reachable over a VPN" and TileOps checks it while your VPN app is connected, and quietly waits otherwise.</p>
+
+<p>Also: Quick Settings tile, home-screen status widget, dark theme, encrypted on-device storage (Android Keystore).</p>
+
+<p>Free and open source (GPL-3.0-or-later). No ads, no tracking. Made by Sathya Prakash J.</p>

@@ -14,8 +14,8 @@ android {
         applicationId = "dev.tileops.app"
         minSdk = 33  // Android 13+
         targetSdk = 37
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
     }
 
     // Release/upload key lives in ../secrets (never in git). Without it, release builds are unsigned.
@@ -67,6 +67,12 @@ android {
     // so phone-only mode generates exactly the same setup as the companion.
     sourceSets.getByName("main").assets.directories.add("../../companion/assets")
 
+    // F-Droid: no Google-signed dependency metadata blob in the APK/AAB signing block.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     packaging {
         resources.excludes += setOf("META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/DEPENDENCIES")
     }
@@ -87,7 +93,7 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.6.2")
     implementation("androidx.camera:camera-lifecycle:1.6.2")
     implementation("androidx.camera:camera-view:1.6.2")
-    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation("com.google.zxing:core:3.5.3") // QR decoding, Apache-2.0 (no Google Play services)
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.work:work-runtime-ktx:2.12.0")
     implementation("androidx.glance:glance-appwidget:1.2.0")

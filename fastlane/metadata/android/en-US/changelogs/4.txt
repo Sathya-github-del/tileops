@@ -1,0 +1,3 @@
+- QR pairing now uses ZXing (open source) instead of Google ML Kit: no Google Play services code in the app
+- Smaller download
+- First F-Droid release

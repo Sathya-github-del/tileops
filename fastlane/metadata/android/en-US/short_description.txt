@@ -1,0 +1,1 @@
+Get alerted when something changes on your Linux servers. No agent, no cloud.

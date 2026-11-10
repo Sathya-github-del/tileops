@@ -10,8 +10,7 @@ TileOps uses the following open-source software. Thank you to their authors.
   * JSch, maintained fork by Matthias Wiedemann (SSH client) ............... BSD-style licence (below)
       includes JZlib and jBCrypt ........................................... BSD-style licences (below)
   * Bouncy Castle Crypto APIs for Java ..................................... MIT-style licence (below)
-  * ML Kit Barcode Scanning (Google) is not open source; its use is subject to the
-    ML Kit Terms of Service: https://developers.google.com/ml-kit/terms
+  * ZXing ("Zebra Crossing") core, QR code decoding .......................... Apache License 2.0
 
 The TileOps companion (Python) uses FastAPI, Starlette, Pydantic, Uvicorn, asyncssh,
 PyYAML, httpx, qrcode and pypng under their own licences (MIT, BSD, EPL-2.0/GPL-2.0-or-later
